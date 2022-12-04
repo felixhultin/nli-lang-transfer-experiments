@@ -454,10 +454,14 @@ def main():
                 return example
             ds = ds.map(remap_labels)
             return ds
-        elif test_task in glue_tasks:
+        elif test_task in glue_tasks + ['mnli-matched', 'mnli-mismatched']:
             if test_task in sglue_tasks:
                 return load_dataset('super_glue', test_task)['test']
             else:
+                if test_task == 'mnli-matched':
+                    return load_dataset('glue', 'mnli')['validation_matched'] # temporary hack
+                if test_task == 'mnli-mismatched':
+                    return load_dataset('glue', 'mnli')['validation_mismatched'] # temporary hack
                 return load_dataset('glue', test_task)['test']
         else:
             return load_dataset(test_task)['test']
@@ -471,20 +475,17 @@ def main():
         #predict_datasets = [predict_dataset]
         predict_datasets = []
         for t in data_args.test_tasks:
-            if t != data_args.task_name:
-                non_task_predict_dataset = load_predict_dataset(t)
-                non_task_predict_dataset = non_task_predict_dataset.map(
-                    preprocess_function,
-                    batched=True,
-                    load_from_cache_file=not data_args.overwrite_cache,
-                    desc="Running tokenizer on dataset",
-                )
-                predict_datasets.append(non_task_predict_dataset)
-
+            non_task_predict_dataset = load_predict_dataset(t)
+            non_task_predict_dataset = non_task_predict_dataset.map(
+                preprocess_function,
+                batched=True,
+                load_from_cache_file=not data_args.overwrite_cache,
+                desc="Running tokenizer on dataset",
+            )
+            predict_datasets.append(non_task_predict_dataset)
         if data_args.task_name == "mnli":
              tasks.append("mnli-mm")
              predict_datasets.append(raw_datasets["test_mismatched"])
-
         for predict_dataset, test_task in zip(predict_datasets, data_args.test_tasks):
             labels = predict_dataset["label"] # Save for later.
             # Removing the `label` columns because it contains -1 and Trainer won't like that.

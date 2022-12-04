@@ -130,7 +130,6 @@ def get_results(experiment_names, tasks):
                 print("Skipping ", t, ". Result files do not exist.")
                 continue
             source = 'predict' if predict_metrics else 'eval'
-            metrics2write = {'accuracy': metrics['eval_accuracy'], }
             row = {
                     **{'task': t, 'source': source}, 
                     **{'acc': metrics['eval_accuracy'], 'size': metrics['eval_samples']}
@@ -160,13 +159,12 @@ def write2excel(results_dfs : List[pd.DataFrame]):
             print(experiment_name)
             df.to_excel(writer, sheet_name = experiment_name)
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('output_dirs', type=str, nargs='+',
                         help='Model output dirs to analyze.')
     parser.add_argument('--tasks', type=str, nargs='+',
-                        default=['mnli', 'wnli', 'qnli', 'rte', 'swediagnostics'],
+                        default=['mnli', 'mnli-matched', 'mnli-mismatched', 'snli', 'glue_diagnostics', 'swediagnostics'],
                         help='Tasks to analyze.')
     args = parser.parse_args()
     output_dirs, tasks = args.output_dirs, args.tasks

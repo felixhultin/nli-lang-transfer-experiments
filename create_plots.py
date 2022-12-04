@@ -19,7 +19,7 @@ def create_diagnostics_barchart(df, name : str = 'Placeholder'):
     ax = g.facet_axis(0, 0)
     for c in ax.containers:
         ax.bar_label(c, fmt='%.2f')
-    plt.savefig('plots/tasks/{name}_diagnostics_barchart.png'.format(name=name))
+    plt.savefig('plots/diagnostics/{name}_diagnostics_barchart.png'.format(name=name))
 
 
 def create_tasks_barchart(df, name : str = 'Placeholder'):
@@ -33,7 +33,7 @@ def create_tasks_barchart(df, name : str = 'Placeholder'):
     ax = g.facet_axis(0, 0)
     for c in ax.containers:
         ax.bar_label(c, fmt='%.2f')
-    plt.savefig('plots/diagnostics/{name}_tasks_barchart.png'.format(name=name))
+    plt.savefig('plots/tasks/{name}_tasks_barchart.png'.format(name=name))
 
 
 def plot_results(results_fn : str):
@@ -50,9 +50,28 @@ def plot_results(results_fn : str):
          create_diagnostics_barchart(df, sn)
          create_tasks_barchart(df, sn)
 
+def plot_heatmap(results_fn : str):
+    xls = pd.ExcelFile(results_fn)
+    sn_dfs = []
+    for sn in xls.sheet_names:
+        sn_df = pd.read_excel(
+            io=fn,
+            sheet_name=sn,
+            engine='openpyxl',
+            index_col = [0,1,2],
+            na_filter=False
+        )
+        sn_df = sn_df.reset_index()
+        sn_df = sn_df[(sn_df['coarsegrained'] == '') & (sn_df['finegrained'] == '')]
+        sn_df = sn_df[['task', 'acc']]
+        sn_df['train'] = sn
+        sn_dfs.append(sn_df)
+    df = pd.concat(sn_dfs).pivot('train', 'task', 'acc')
+    sns.heatmap(df, annot=True)
+    plt.savefig('plots/tasks/all_heatmap.png')
+
 
 if __name__ == '__main__':
     fn = sys.argv[1] if len(sys.argv) < 1 else 'results.xlsx'
     plot_results(fn)
-
-    #plot_diagnostics(fn)
+    df = plot_heatmap(fn)

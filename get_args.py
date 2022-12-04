@@ -83,12 +83,14 @@ class DataTrainingArguments:
         default=None, metadata={"help": "A csv or a json file containing the validation data."}
     )
     validation_matched_file: Optional[str] = field(
-        default=None, metadata={"help": "A csv or a json file containing the validation data."}
+        default=None, metadata={"help": "A csv or a json file containing the validation matched data (MNLI only)."}
     )
     validation_mismatched_file: Optional[str] = field(
-        default=None, metadata={"help": "A csv or a json file containing the validation data."}
+        default=None, metadata={"help": "A csv or a json file containing the validation mismatched data (MNLI only)."}
     )
     test_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test data."})
+    test_matched_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test matched data (MNLI only)."})
+    test_mismatched_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test mismatched data (MNLI only)."})
     test_tasks: Optional[List[str]] = field(default=None, metadata={"help": "The tasks you want to test on."})
     lang: Optional[str] = field(default=None, metadata={"help": "The language you want to use OverLim with"})
 
