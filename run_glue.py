@@ -144,20 +144,32 @@ def main():
         # CSV/JSON training and evaluation files are needed.
         data_files = {"train": data_args.train_file}
         if data_args.task_name == 'mnli':
-            data_files['validation'] = data_args.validation_matched_file
+            data_files['validation_matched'] = data_args.validation_matched_file
             data_files['validation_mismatched'] = data_args.validation_mismatched_file
         else:
             data_files['validation'] =  data_args.validation_file
         # Get the test dataset: you can provide your own CSV/JSON test file (see below)
         # when you use `do_predict` without specifying a GLUE benchmark task.
         if training_args.do_predict:
-            if data_args.test_file is not None:
+            if any([data_args.test_file, data_args.test_matched_file, data_args.test_mismatched_file]):
                 train_extension = data_args.train_file.split(".")[-1]
-                test_extension = data_args.test_file.split(".")[-1]
+                if data_args.task_name == 'mnli':
+                    test_matched_extension = data_args.test_matched_file.split(".")[-1]
+                    test_mismatched_extension = data_args.test_mismatched_file.split(".")[-1]
+                    assert(
+                        test_matched_extension == test_mismatched_extension
+                    ), "test_matched file and test_mismatched file should have the same extension (csv/tsv or json)"
+                    test_extension = test_matched_extension
+                else:
+                    test_extension = data_args.test_file.split(".")[-1]
                 assert (
                     test_extension == train_extension
                 ), "`test_file` should have the same extension (csv or json) as `train_file`."
-                data_files["test"] = data_args.test_file
+                if data_args.task_name == 'mnli':
+                    data_files['test_matched'] = data_args.test_matched_file
+                    data_files['test_mismatched'] = data_args.test_mismatched_file
+                else:
+                    data_files["test"] = data_args.test_file
             else:
                 raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
         for key in data_files.keys():
@@ -326,6 +338,7 @@ def main():
 
     if training_args.do_predict or data_args.task_name is not None or data_args.test_file is not None:
         if "test" not in raw_datasets and "test_matched" not in raw_datasets:
+            import pdb; pdb.set_trace()
             raise ValueError("--do_predict requires a test dataset")
         predict_dataset = raw_datasets["test_matched" if data_args.task_name == "mnli" else "test"]
         if data_args.max_predict_samples is not None:
@@ -429,34 +442,35 @@ def main():
     def load_predict_dataset(test_task : str):
         glue_tasks = "mnli mrpc qnli qqp rte sst stsb wnli ax boolq cb copa".split()
         sglue_tasks = glue_tasks[-3:]
-        if data_args.lang == 'sv' or test_task.endswith(('csv', 'tsv')):
+        if test_task.endswith('json'):
+            return load_dataset("json", data_files={'test': test_task}, cache_dir=model_args.cache_dir)['test']
+        elif test_task.endswith(('csv', 'tsv')):
             delimiter = ',' if test_task.endswith('csv') else '\t'
-            return load_dataset("csv", data_files=[test_task], delimiter=delimiter, cache_dir=model_args.cache_dir)['test']
-        if test_task == 'glue_diagnostics':
-            ds = load_glue_diagnostics_dataset()
+            return load_dataset("csv", data_files={'test': test_task}, delimiter=delimiter, cache_dir=model_args.cache_dir)['test']
+        elif test_task in ('glue_diagnostics', 'swediagnostics'):
+            ds = load_glue_diagnostics_dataset() if test_task == 'glue_diagnostics' else load_swediagnostics_dataset()
             def remap_labels(example):
                 example['label'] = config.label2id[example['label']]
                 return example
             ds = ds.map(remap_labels)
             return ds
-        else:
-            if test_task in glue_tasks:
-                if test_task in sglue_tasks:
-                    return load_dataset('super_glue', test_task)['test']
-                else:
-                    return load_dataset('glue', test_task)['test']
+        elif test_task in glue_tasks:
+            if test_task in sglue_tasks:
+                return load_dataset('super_glue', test_task)['test']
             else:
-                return load_dataset(test_task)['test']
+                return load_dataset('glue', test_task)['test']
+        else:
+            return load_dataset(test_task)['test']
 
     
     if training_args.do_predict:
         logger.info("*** Predict ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
-        tasks = [data_args.task_name] + data_args.test_tasks
-        predict_datasets = [predict_dataset]
-
-        for t in tasks:
+        #tasks = [data_args.task_name] + data_args.test_tasks
+        #predict_datasets = [predict_dataset]
+        predict_datasets = []
+        for t in data_args.test_tasks:
             if t != data_args.task_name:
                 non_task_predict_dataset = load_predict_dataset(t)
                 non_task_predict_dataset = non_task_predict_dataset.map(
@@ -471,7 +485,7 @@ def main():
              tasks.append("mnli-mm")
              predict_datasets.append(raw_datasets["test_mismatched"])
 
-        for predict_dataset, task in zip(predict_datasets, tasks):
+        for predict_dataset, test_task in zip(predict_datasets, data_args.test_tasks):
             labels = predict_dataset["label"] # Save for later.
             # Removing the `label` columns because it contains -1 and Trainer won't like that.
             if -1 in predict_dataset["label"]:
@@ -486,14 +500,23 @@ def main():
             )
             metrics["eval_samples"] = min(max_eval_samples, len(predict_dataset))
 
-            trainer.log_metrics("predict-" + task, metrics)
-            trainer.save_metrics("predict-" + task, metrics)
+            # Hack solution
+            # TODO: Fix later
+            if 'mnli' in test_task.lower():
+                test_task = 'mnli-mismatched' if 'mismatched' in test_task else 'mnli-matched'  
+            elif 'snli' in test_task.lower():
+                test_task = 'snli'
+            else:
+                test_task = test_task
+
+            trainer.log_metrics("predict-" + test_task, metrics)
+            trainer.save_metrics("predict-" + test_task, metrics)
 
             # Write predictions to file.
-            if task in ('swediagnostics', 'glue_diagnostics'): # Only makes sense to save labels for diagnostics.
+            if test_task in ('swediagnostics', 'glue_diagnostics'): # Only makes sense to save labels for diagnostics.
                 predictions = trainer.predict(predict_dataset, metric_key_prefix="predict").predictions
                 predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
-                output_predict_file = os.path.join(training_args.output_dir, f"predictions-{task}.tsv")
+                output_predict_file = os.path.join(training_args.output_dir, f"predictions-{test_task}.tsv")
                 if trainer.is_world_process_zero():
                     with open(output_predict_file, "w") as writer:
                         logger.info(f"***** Predict results {task} *****")
