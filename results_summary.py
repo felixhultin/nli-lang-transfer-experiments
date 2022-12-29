@@ -1,14 +1,12 @@
 import argparse
 import json
 import itertools
-import numpy as np
 import os.path
 import pandas as pd
 
 from typing import List
 
 from sklearn.metrics import accuracy_score, matthews_corrcoef
-from transformers import AutoConfig
 
 from load_diagnostics import load_glue_diagnostics_dataset, load_swediagnostics_dataset
 
@@ -145,6 +143,8 @@ def get_results(experiment_names, tasks):
                 complete_df = full_df.merge(test_preds, right_on = ['index'], left_index=True, how='left')
                 complete_df['label'] = complete_df['label_x']
                 complete_df = complete_df.drop(columns=['label_x', 'label_y'])
+                mcc = matthews_corrcoef(complete_df['label'], complete_df['prediction'])
+                row['acc'] = mcc #str(row['acc']) + ' (acc) / ' + str(mcc) + ' (mcc)'
                 data += get_diagnostics_results(complete_df, t)
         if 'swediagnostics' in tasks or 'glue_diagnostics' in tasks:
             dfs[e_n] = pd.DataFrame(data).fillna('').set_index(['task', 'coarsegrained', 'finegrained'])
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('output_dirs', type=str, nargs='+',
                         help='Model output dirs to analyze.')
     parser.add_argument('--tasks', type=str, nargs='+',
-                        default=['mnli', 'mnli-matched', 'mnli-mismatched', 'snli', 'glue_diagnostics', 'swediagnostics'],
+                        default=['mnli-matched', 'mnli-mismatched', 'snli', 'snli-hard', 'glue_diagnostics', 'swediagnostics'],
                         help='Tasks to analyze.')
     args = parser.parse_args()
     output_dirs, tasks = args.output_dirs, args.tasks
