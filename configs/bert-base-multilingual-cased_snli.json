@@ -1,0 +1,27 @@
+{
+    "model_name_or_path": "./models/bert-base-multilingual-cased_snli/",
+    "task_name": "snli",
+    "fp16": true,
+    "output_dir": "bert-base-multilingual-cased_snli",
+    "do_eval": true,
+    "do_train": false,
+    "do_predict": true,
+    "test_tasks": [
+        "./data/MNLI_SV/validation_matched_sv.json", 
+        "./data/MNLI_SV/validation_mismatched_sv.json", 
+        "./data/SNLI_SV/test_sv.json", 
+        "./data/SNLI_SV/test_hard_sv.json",
+        "mnli-matched", 
+        "mnli-mismatched", 
+        "snli", 
+        "data/snli_test_hard.json", 
+        "glue_diagnostics", 
+        "swediagnostics"],
+    "overwrite_output_dir": true,
+    "per_device_train_batch_size": 80,
+    "per_device_eval_batch_size": 80,
+    "num_train_epochs": 5,
+    "seed": 1,
+    "disable_tqdm": false,
+    "overwrite_cache": true
+}
