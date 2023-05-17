@@ -483,9 +483,6 @@ def main():
                 desc="Running tokenizer on dataset",
             )
             predict_datasets.append(non_task_predict_dataset)
-        if data_args.task_name == "mnli":
-             tasks.append("mnli-mm")
-             predict_datasets.append(raw_datasets["test_mismatched"])
         for predict_dataset, test_task in zip(predict_datasets, data_args.test_tasks):
             labels = predict_dataset["label"] # Save for later.
             # Removing the `label` columns because it contains -1 and Trainer won't like that.
@@ -503,12 +500,18 @@ def main():
 
             # Hack solution
             # TODO: Fix later
+
+            task_lang : str = 'en' if 'sv' not in test_task else 'sv'
+
             if 'mnli' in test_task.lower():
                 test_task = 'mnli-mismatched' if 'mismatched' in test_task else 'mnli-matched'  
             elif 'snli' in test_task.lower():
-                test_task = 'snli'
+                test_task = 'snli' if 'hard' not in test_task else 'snli-hard'
             else:
                 test_task = test_task
+            
+            if task_lang == 'sv':
+                test_task += f'_{task_lang}'
 
             trainer.log_metrics("predict-" + test_task, metrics)
             trainer.save_metrics("predict-" + test_task, metrics)

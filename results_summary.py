@@ -118,9 +118,13 @@ def get_results(experiment_names, tasks):
         if not e_n.endswith('/'):
             e_n += '/'
         data = []
-        for t in tasks:            
-            predict_results_fp = f'{e_n}predict-{t}_results.json'
-            eval_results_fp = f'{e_n}eval-{t}_results.json'
+        for t in tasks:
+            if "multi" in e_n and t in ("snli", "snli-hard", "mnli-matched", "mnli-mismatched"):
+                predict_results_fp = f'{e_n}predict-{t}_sv_results.json'
+                eval_results_fp = f'{e_n}eval-{t}_sv_results.json'
+            else:
+                predict_results_fp = f'{e_n}predict-{t}_results.json'
+                eval_results_fp = f'{e_n}eval-{t}_results.json'
             predict_metrics = get_metrics_or_empty_dict(predict_results_fp)
             eval_metrics = get_metrics_or_empty_dict(eval_results_fp)
             metrics = predict_metrics if predict_metrics else eval_metrics
