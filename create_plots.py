@@ -139,7 +139,6 @@ def create_overlapping_diagnostics_barchart(fn : str, model_path_1 : str, model_
         g1.bar_label(c, labels_df1)
     coarsegrained_leg = plt.legend(labels=df1.coarsegrained.unique(), loc='upper left')
     if not show_xticks:
-        import pdb; pdb.set_trace()
         g0.yaxis.set_ticks([], [])
     g0.add_artist(coarsegrained_leg)
     model_name_1, model_name_2 = format_modelname(model_path_1), format_modelname(model_path_2) 
@@ -148,12 +147,9 @@ def create_overlapping_diagnostics_barchart(fn : str, model_path_1 : str, model_
     model_leg = plt.legend(handles=[transparent_line, thick_line], loc='upper left', bbox_to_anchor=(0,0.85))
     plt.tight_layout()
     plt.rcParams["font.family"] = "Times New Roman"
-    #plt.rcParams["font.size"] = 22
     plt.savefig(f'plots/diagnostics/{model_path_1}-COMPARED_TO-{model_path_2}_{metric}_hbarplot_overlapped.svg')
     plt.savefig(f'plots/diagnostics/{model_path_1}-COMPARED_TO-{model_path_2}_{metric}_hbarplot_overlapped.png')
-    plt.savefig(f'lololol.svg')
-    plt.savefig(f'lololol.png')
-    #plt.savefig(f'plots/diagnostics/{model_path_1}-COMPARED_TO-{model_path_2}_{metric}_hbarplot_overlapped.eps', format='eps')
+    plt.savefig(f'plots/diagnostics/{model_path_1}-COMPARED_TO-{model_path_2}_{metric}_hbarplot_overlapped.eps', format='eps')
     plt.clf()
     sns.reset_defaults()
 
@@ -336,7 +332,7 @@ if __name__ == '__main__':
     plot_diagnostics(fn, to_compare)
 
     # Plot diagnostics comparable barchart (matthew correlation coefficient)
-    #create_overlapping_diagnostics_barchart(fn, 'bert-base-swedish-cased_mnli_sv_full', 'bert-base-cased_mnli')
-    #create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli_sv_full', 'bert-base-cased_mnli')
-    create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli', 'bert-base-cased_mnli', show_xticks=False)
-    #create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli', 'bert-base-swedish-cased_mnli_sv_full')
+    create_overlapping_diagnostics_barchart(fn, 'bert-base-swedish-cased_mnli_sv_full', 'bert-base-cased_mnli')
+    create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli_sv_full', 'bert-base-cased_mnli')
+    create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli', 'bert-base-cased_mnli')
+    create_overlapping_diagnostics_barchart(fn, 'bert-base-multilingual-cased_mnli', 'bert-base-swedish-cased_mnli_sv_full')
